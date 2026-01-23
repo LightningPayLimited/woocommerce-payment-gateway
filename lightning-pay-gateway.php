@@ -194,7 +194,7 @@ add_action('plugins_loaded', function () {
                 return;
             }
 
-            $nonce = wp_create_nonce('lightning_pay_check_' . $order_id);
+            $nonce = wp_create_nonce('lightning_pay_check');
             $ajax_url = WC()->api_request_url('wc_gateway_lightning_pay');
             $ajax_url = add_query_arg([
                 'order_id' => $order_id,
@@ -239,14 +239,12 @@ add_action('plugins_loaded', function () {
         }
 
         public function handle_return() {
-            $order_id = isset($_GET['order_id']) ? absint($_GET['order_id']) : 0;
-            $nonce    = isset($_GET['nonce']) ? sanitize_text_field($_GET['nonce']) : '';
-
-            if (!wp_verify_nonce($nonce, 'lightning_pay_check_' . $order_id)) {
+            if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'lightning_pay_check' ) ) {
                 wp_send_json(['paid' => false], 403);
                 return;
             }
 
+            $order_id = isset( $_GET['order_id'] ) ? absint( wp_unslash( $_GET['order_id'] ) ) : 0;
             $order = wc_get_order($order_id);
             if (!$order) {
                 wp_send_json(['paid' => false], 404);
@@ -296,7 +294,7 @@ add_action('plugins_loaded', function () {
             echo '<p><strong>Status:</strong> <span id="lp-status">' . ($order->is_paid() ? 'Paid' : 'Pending') . '</span></p>';
 
             if (!$order->is_paid() && $reference) {
-                $nonce = wp_create_nonce('lightning_pay_admin_check_' . $order->get_id());
+                $nonce = wp_create_nonce('lightning_pay_admin_check');
                 ?>
                 <button type="button" class="button" id="lp-check-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>" data-nonce="<?php echo esc_attr($nonce); ?>">Check Payment Status</button>
                 <span id="lp-error" style="display:none; color:#d63638; margin-top:8px; display:none;"></span>
@@ -349,10 +347,7 @@ add_action('plugins_loaded', function () {
         }
 
         public function admin_check_status() {
-            $nonce = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
-            $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
-
-            if (!wp_verify_nonce($nonce, 'lightning_pay_admin_check_' . $order_id)) {
+            if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'lightning_pay_admin_check' ) ) {
                 wp_send_json_error(['message' => 'Invalid or expired security token. Please reload the page and try again.']);
                 return;
             }
@@ -362,6 +357,7 @@ add_action('plugins_loaded', function () {
                 return;
             }
 
+            $order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
             $order = wc_get_order($order_id);
             if (!$order) {
                 wp_send_json_error(['message' => 'Order #' . $order_id . ' not found.']);
