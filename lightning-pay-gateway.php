@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Lightning Pay Gateway
+ * Plugin Name: Lightning Pay Bitcoin Payment Gateway
  * Description: WooCommerce payment gateway for Bitcoin Lightning Network payments via Lightning Pay.
  * Version: 1.0.0
  * Author: Lightning Pay
