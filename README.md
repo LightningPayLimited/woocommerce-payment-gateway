@@ -1,6 +1,6 @@
 # Lightning Pay WooCommerce Payment Gateway
 
-WooCommerce payment gateway for accepting Bitcoin Lightning Network payments via [Lightning Pay](https://app.lightningpay.nz).
+WooCommerce payment gateway for accepting Bitcoin Lightning Network payments via [Lightning Pay](https://app.lightningpay.nz?landing=githubwoocommerce)).
 
 ## Requirements
 
