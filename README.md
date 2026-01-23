@@ -7,7 +7,7 @@ WooCommerce payment gateway for accepting Bitcoin Lightning Network payments via
 - WordPress 5.0+
 - WooCommerce 5.0+
 - Store currency set to NZD
-- A Lightning Pay merchant account ([register here](https://app.lightningpay.nz/auth/register))
+- A Lightning Pay merchant account ([register here](https://app.lightningpay.nz/auth/register?landing=githubwoocommerce))
 
 ## Installation
 
