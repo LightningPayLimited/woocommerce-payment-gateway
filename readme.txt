@@ -4,7 +4,7 @@ Tags: woocommerce, bitcoin, lightning network, payments, cryptocurrency
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,6 +55,12 @@ Currently the store currency must be set to NZD.
 Register for a Lightning Pay merchant account at [Lightning Pay](https://app.lightningpay.nz/auth/register?landing=githubwoocommerce).
 
 == Changelog ==
+
+= 1.0.2 =
+* Fix typos in admin settings descriptions.
+* Fix duplicate CSS property in admin order panel.
+* Add order validation in payment processing.
+* Declare WooCommerce HPOS compatibility.
 
 = 1.0.1 =
 * Fix nonce verification and input sanitization for WordPress plugin review compliance.

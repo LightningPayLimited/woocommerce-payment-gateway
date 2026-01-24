@@ -2,13 +2,20 @@
 /**
  * Plugin Name: Lightning Pay Bitcoin Payment Gateway
  * Description: WooCommerce payment gateway for Bitcoin Lightning Network payments via Lightning Pay.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Lightning Pay
  * Requires Plugins: woocommerce
  * License: GPL-2.0-or-later
  */
 
 defined('ABSPATH') || exit;
+
+// Declare compatibility with WooCommerce High-Performance Order Storage.
+add_action('before_woocommerce_init', function () {
+    if (class_exists(\Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
+    }
+});
 
 // Fix return URL key corruption from Lightning Pay appending ?status=success
 add_filter('woocommerce_thankyou_order_key', function ($key) {
@@ -88,7 +95,7 @@ add_action('plugins_loaded', function () {
                 'api_key' => [
                     'title'       => 'API Key',
                     'type'        => 'password',
-                    'description' => 'Your Lightning Pay API key, found in your merchange profile.',
+                    'description' => 'Your Lightning Pay API key, found in your merchant profile.',
                     'desc_tip'    => true,
                 ],
                 'api_base' => [
@@ -111,7 +118,7 @@ add_action('plugins_loaded', function () {
             if (empty($this->api_key)) {
                 echo '<div class="notice notice-info inline"><p>';
                 echo '<strong>Getting started with Lightning Pay:</strong><br>';
-                echo 'If you don\'t have an account, <a href="https://app.lightningpay.nz/auth/register" target="_blank">create one at lightningpay.nz</a>. Ensure you either seleect company account if you have a business bank account or enter your trading name if you are a sole trader.<br>';
+                echo 'If you don\'t have an account, <a href="https://app.lightningpay.nz/auth/register" target="_blank">create one at lightningpay.nz</a>. Ensure you either select company account if you have a business bank account or enter your trading name if you are a sole trader.<br>';
                 echo 'If you already have an account, enter your API key below.';
                 echo '</p></div>';
             }
@@ -134,6 +141,10 @@ add_action('plugins_loaded', function () {
 
         public function process_payment($order_id) {
             $order = wc_get_order($order_id);
+            if (!$order) {
+                wc_add_notice('Payment error: order not found.', 'error');
+                return ['result' => 'failure'];
+            }
 
             $response = wp_remote_post($this->api_base . '/api/paymentlink', [
                 'headers' => [
@@ -297,7 +308,7 @@ add_action('plugins_loaded', function () {
                 $nonce = wp_create_nonce('lightning_pay_admin_check');
                 ?>
                 <button type="button" class="button" id="lp-check-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>" data-nonce="<?php echo esc_attr($nonce); ?>">Check Payment Status</button>
-                <span id="lp-error" style="display:none; color:#d63638; margin-top:8px; display:none;"></span>
+                <span id="lp-error" style="display:none; color:#d63638; margin-top:8px;"></span>
                 <script type="text/javascript">
                 document.getElementById('lp-check-status').addEventListener('click', function() {
                     var btn = this;
