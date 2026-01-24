@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Lightning Pay Bitcoin Payment Gateway
  * Description: WooCommerce payment gateway for Bitcoin Lightning Network payments via Lightning Pay.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Lightning Pay
  * Requires Plugins: woocommerce
  * License: GPL-2.0-or-later
