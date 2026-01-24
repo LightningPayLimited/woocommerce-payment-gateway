@@ -30,6 +30,65 @@ add_action('wp_ajax_lightning_pay_check_status', function () {
     }
 });
 
+add_action('admin_notices', function () {
+    if (!current_user_can('manage_woocommerce')) {
+        return;
+    }
+    $settings = get_option('woocommerce_lightning_pay_settings', []);
+    if (empty($settings['enabled']) || 'yes' !== $settings['enabled']) {
+        return;
+    }
+    if (function_exists('get_woocommerce_currency') && get_woocommerce_currency() !== 'NZD') {
+        echo '<div class="notice notice-warning"><p>';
+        echo '<strong>Lightning Pay:</strong> Your store currency is set to <strong>' . esc_html(get_woocommerce_currency()) . '</strong>, but Lightning Pay requires the currency to be set to <strong>NZD</strong>. ';
+        echo 'Please <a href="' . esc_url(admin_url('admin.php?page=wc-settings')) . '">update your WooCommerce currency settings</a> to NZD, or the Lightning Pay payment method will not appear at checkout.';
+        echo '</p></div>';
+    }
+});
+
+add_action('woocommerce_blocks_loaded', function () {
+    if (!class_exists('Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType')) {
+        return;
+    }
+
+    class WC_Gateway_Lightning_Pay_Blocks extends \Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType {
+        protected $name = 'lightning_pay';
+
+        public function initialize() {
+            $this->settings = get_option('woocommerce_lightning_pay_settings', []);
+        }
+
+        public function is_active() {
+            return !empty($this->settings['enabled']) && 'yes' === $this->settings['enabled']
+                && !empty($this->settings['api_key'])
+                && get_woocommerce_currency() === 'NZD';
+        }
+
+        public function get_payment_method_script_handles() {
+            wp_register_script(
+                'wc-lightning-pay-blocks',
+                plugin_dir_url(__FILE__) . 'assets/js/lightning-pay-blocks.js',
+                ['wc-blocks-registry', 'wc-settings', 'wp-element', 'wp-html-entities'],
+                '1.0.1',
+                true
+            );
+            return ['wc-lightning-pay-blocks'];
+        }
+
+        public function get_payment_method_data() {
+            return [
+                'title'       => $this->settings['title'] ?? 'Lightning Pay',
+                'description' => $this->settings['description'] ?? 'Pay with Bitcoin via the Lightning Network.',
+                'supports'    => ['products'],
+            ];
+        }
+    }
+
+    add_action('woocommerce_blocks_payment_method_type_registration', function ($registry) {
+        $registry->register(new WC_Gateway_Lightning_Pay_Blocks());
+    });
+});
+
 add_action('plugins_loaded', function () {
     if (!class_exists('WC_Payment_Gateway')) {
         return;
@@ -113,6 +172,13 @@ add_action('plugins_loaded', function () {
                 echo '<strong>Getting started with Lightning Pay:</strong><br>';
                 echo 'If you don\'t have an account, <a href="https://app.lightningpay.nz/auth/register" target="_blank">create one at lightningpay.nz</a>. Ensure you either seleect company account if you have a business bank account or enter your trading name if you are a sole trader.<br>';
                 echo 'If you already have an account, enter your API key below.';
+                echo '</p></div>';
+            }
+            if (get_woocommerce_currency() !== 'NZD') {
+                echo '<div class="notice notice-warning inline"><p>';
+                echo '<strong>Currency notice:</strong> Lightning Pay only supports <strong>NZD</strong> (New Zealand Dollar). ';
+                echo 'Your store currency is currently set to <strong>' . esc_html(get_woocommerce_currency()) . '</strong>. ';
+                echo 'Please <a href="' . esc_url(admin_url('admin.php?page=wc-settings')) . '">change your currency to NZD</a> for Lightning Pay to be available at checkout.';
                 echo '</p></div>';
             }
             parent::admin_options();
