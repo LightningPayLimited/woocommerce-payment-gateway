@@ -174,6 +174,9 @@ add_action('plugins_loaded', function () {
         }
 
         public function admin_options() {
+            echo '<div style="margin-bottom: 20px;">';
+            echo '<img src="' . esc_url(plugin_dir_url(__FILE__) . 'assets/images/lightning-pay-logo.png') . '" alt="Lightning Pay" style="max-height: 50px; width: auto;">';
+            echo '</div>';
             if (empty($this->api_key)) {
                 echo '<div class="notice notice-info inline"><p>';
                 echo '<strong>Getting started with Lightning Pay:</strong><br>';
@@ -363,7 +366,7 @@ add_action('plugins_loaded', function () {
             $payment_link = $order->get_meta('_lightning_pay_link');
 
             echo '<div class="order_data_column" style="border-top:1px solid #e5e5e5; padding-top:12px; margin-top:12px;">';
-            echo '<h4>Lightning Pay</h4>';
+            echo '<img src="' . esc_url(plugin_dir_url(__FILE__) . 'assets/images/lightning-pay-logo.png') . '" alt="Lightning Pay" style="max-height: 30px; width: auto; margin-bottom: 8px;">';
             echo '<p><strong>Reference:</strong> ' . esc_html($reference ?: 'N/A') . '</p>';
             if ($payment_link) {
                 echo '<p><strong>Payment Link:</strong> <a href="' . esc_url($payment_link) . '" target="_blank">View</a></p>';
