@@ -26,7 +26,7 @@ add_filter('woocommerce_thankyou_order_key', function ($key) {
 });
 
 add_filter('woocommerce_payment_gateways', function ($gateways) {
-    $gateways[] = 'WC_Gateway_Stacked';
+    $gateways[] = 'Stacked_Payment_Gateway';
     return $gateways;
 });
 
@@ -60,7 +60,7 @@ add_action('woocommerce_blocks_loaded', function () {
         return;
     }
 
-    class WC_Gateway_Stacked_Blocks extends \Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType {
+    class Stacked_Payment_Gateway_Blocks extends \Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType {
         protected $name = 'stacked';
 
         public function initialize() {
@@ -95,7 +95,7 @@ add_action('woocommerce_blocks_loaded', function () {
     }
 
     add_action('woocommerce_blocks_payment_method_type_registration', function ($registry) {
-        $registry->register(new WC_Gateway_Stacked_Blocks());
+        $registry->register(new Stacked_Payment_Gateway_Blocks());
     });
 });
 
@@ -104,7 +104,7 @@ add_action('plugins_loaded', function () {
         return;
     }
 
-    class WC_Gateway_Stacked extends WC_Payment_Gateway {
+    class Stacked_Payment_Gateway extends WC_Payment_Gateway {
 
         private string $api_key;
         private string $api_base;

@@ -4,7 +4,7 @@ Tags: woocommerce, bitcoin, lightning network, payments, cryptocurrency
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,6 +55,13 @@ Currently the store currency must be set to NZD.
 Register for a Stacked merchant account at [Stacked](https://app.stackedbitcoin.com/auth/register?landing=githubwoocommerce).
 
 == Changelog ==
+
+= 1.2.0 =
+* Add Stacked logo to checkout, admin settings, and order details.
+
+= 1.1.0 =
+* Add block-based checkout support.
+* Add admin notice when store currency is not set to NZD.
 
 = 1.0.2 =
 * Fix typos in admin settings descriptions.
