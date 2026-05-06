@@ -1,14 +1,16 @@
 <?php
 /**
- * Plugin Name: Lightning Pay Bitcoin Payment Gateway
- * Description: WooCommerce payment gateway for Bitcoin Lightning Network payments via Lightning Pay.
+ * Plugin Name: Stacked Bitcoin Payment Gateway
+ * Description: WooCommerce payment gateway for Bitcoin Lightning Network payments via Stacked.
  * Version: 1.2.0
- * Author: Lightning Pay
+ * Author: Stacked
  * Requires Plugins: woocommerce
  * License: GPL-2.0-or-later
  */
 
 defined('ABSPATH') || exit;
+
+define('STACKED_GATEWAY_VERSION', '1.2.0');
 
 // Declare compatibility with WooCommerce High-Performance Order Storage.
 add_action('before_woocommerce_init', function () {
@@ -17,23 +19,23 @@ add_action('before_woocommerce_init', function () {
     }
 });
 
-// Fix return URL key corruption from Lightning Pay appending ?status=success
+// Fix return URL key corruption from Stacked appending ?status=success
 add_filter('woocommerce_thankyou_order_key', function ($key) {
     $pos = strpos($key, '?');
     return $pos !== false ? substr($key, 0, $pos) : $key;
 });
 
 add_filter('woocommerce_payment_gateways', function ($gateways) {
-    $gateways[] = 'WC_Gateway_Lightning_Pay';
+    $gateways[] = 'WC_Gateway_Stacked';
     return $gateways;
 });
 
-add_action('wp_ajax_lightning_pay_check_status', function () {
-    $gateway = WC()->payment_gateways()->payment_gateways()['lightning_pay'] ?? null;
+add_action('wp_ajax_stacked_check_status', function () {
+    $gateway = WC()->payment_gateways()->payment_gateways()['stacked'] ?? null;
     if ($gateway) {
         $gateway->admin_check_status();
     } else {
-        wp_send_json_error(['message' => 'Lightning Pay gateway not found.']);
+        wp_send_json_error(['message' => 'Stacked gateway not found.']);
     }
 });
 
@@ -41,14 +43,14 @@ add_action('admin_notices', function () {
     if (!current_user_can('manage_woocommerce')) {
         return;
     }
-    $settings = get_option('woocommerce_lightning_pay_settings', []);
+    $settings = get_option('woocommerce_stacked_settings', []);
     if (empty($settings['enabled']) || 'yes' !== $settings['enabled']) {
         return;
     }
     if (function_exists('get_woocommerce_currency') && get_woocommerce_currency() !== 'NZD') {
         echo '<div class="notice notice-warning"><p>';
-        echo '<strong>Lightning Pay:</strong> Your store currency is set to <strong>' . esc_html(get_woocommerce_currency()) . '</strong>, but Lightning Pay requires the currency to be set to <strong>NZD</strong>. ';
-        echo 'Please <a href="' . esc_url(admin_url('admin.php?page=wc-settings')) . '">update your WooCommerce currency settings</a> to NZD, or the Lightning Pay payment method will not appear at checkout.';
+        echo '<strong>Stacked:</strong> Your store currency is set to <strong>' . esc_html(get_woocommerce_currency()) . '</strong>, but Stacked requires the currency to be set to <strong>NZD</strong>. ';
+        echo 'Please <a href="' . esc_url(admin_url('admin.php?page=wc-settings')) . '">update your WooCommerce currency settings</a> to NZD, or the Stacked payment method will not appear at checkout.';
         echo '</p></div>';
     }
 });
@@ -58,11 +60,11 @@ add_action('woocommerce_blocks_loaded', function () {
         return;
     }
 
-    class WC_Gateway_Lightning_Pay_Blocks extends \Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType {
-        protected $name = 'lightning_pay';
+    class WC_Gateway_Stacked_Blocks extends \Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType {
+        protected $name = 'stacked';
 
         public function initialize() {
-            $this->settings = get_option('woocommerce_lightning_pay_settings', []);
+            $this->settings = get_option('woocommerce_stacked_settings', []);
         }
 
         public function is_active() {
@@ -73,26 +75,27 @@ add_action('woocommerce_blocks_loaded', function () {
 
         public function get_payment_method_script_handles() {
             wp_register_script(
-                'wc-lightning-pay-blocks',
-                plugin_dir_url(__FILE__) . 'assets/js/lightning-pay-blocks.js',
+                'wc-stacked-blocks',
+                plugin_dir_url(__FILE__) . 'assets/js/stacked-blocks.js',
                 ['wc-blocks-registry', 'wc-settings', 'wp-element', 'wp-html-entities'],
-                '1.0.1',
+                STACKED_GATEWAY_VERSION,
                 true
             );
-            return ['wc-lightning-pay-blocks'];
+            return ['wc-stacked-blocks'];
         }
 
         public function get_payment_method_data() {
             return [
-                'title'       => $this->settings['title'] ?? 'Lightning Pay',
+                'title'       => $this->settings['title'] ?? 'Stacked',
                 'description' => $this->settings['description'] ?? 'Pay with Bitcoin via the Lightning Network.',
+                'icon'        => plugin_dir_url(__FILE__) . 'assets/images/stacked-logo.svg',
                 'supports'    => ['products'],
             ];
         }
     }
 
     add_action('woocommerce_blocks_payment_method_type_registration', function ($registry) {
-        $registry->register(new WC_Gateway_Lightning_Pay_Blocks());
+        $registry->register(new WC_Gateway_Stacked_Blocks());
     });
 });
 
@@ -101,16 +104,17 @@ add_action('plugins_loaded', function () {
         return;
     }
 
-    class WC_Gateway_Lightning_Pay extends WC_Payment_Gateway {
+    class WC_Gateway_Stacked extends WC_Payment_Gateway {
 
         private string $api_key;
         private string $api_base;
         private bool $debug;
 
         public function __construct() {
-            $this->id                 = 'lightning_pay';
-            $this->method_title       = 'Lightning Pay';
-            $this->method_description = 'Accept Bitcoin Lightning Network payments via Lightning Pay.';
+            $this->id                 = 'stacked';
+            $this->method_title       = 'Stacked';
+            $this->method_description = 'Accept Bitcoin Lightning Network payments via Stacked.';
+            $this->icon               = plugin_dir_url(__FILE__) . 'assets/images/stacked-logo.svg';
             $this->has_fields         = false;
             $this->order_button_text  = 'Pay with Bitcoin';
 
@@ -120,13 +124,14 @@ add_action('plugins_loaded', function () {
             $this->title       = $this->get_option('title');
             $this->description = $this->get_option('description');
             $this->api_key     = $this->get_option('api_key');
-            $this->api_base    = rtrim($this->get_option('api_base', 'https://app.lightningpay.nz'), '/');
+            $this->api_base    = rtrim($this->get_option('api_base', 'https://app.stackedbitcoin.com'), '/');
             $this->debug       = 'yes' === $this->get_option('debug');
 
             add_action('woocommerce_update_options_payment_gateways_' . $this->id, [$this, 'process_admin_options']);
             add_action('woocommerce_thankyou_' . $this->id, [$this, 'check_payment_status']);
-            add_action('woocommerce_api_wc_gateway_lightning_pay', [$this, 'handle_return']);
+            add_action('woocommerce_api_wc_gateway_stacked', [$this, 'handle_return']);
             add_action('woocommerce_admin_order_data_after_order_details', [$this, 'render_admin_payment_info']);
+            add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_order_script']);
         }
 
         public function init_form_fields() {
@@ -134,14 +139,14 @@ add_action('plugins_loaded', function () {
                 'enabled' => [
                     'title'   => 'Enable/Disable',
                     'type'    => 'checkbox',
-                    'label'   => 'Enable Lightning Pay',
+                    'label'   => 'Enable Stacked',
                     'default' => 'no',
                 ],
                 'title' => [
                     'title'       => 'Title',
                     'type'        => 'text',
                     'description' => 'Payment method title shown at checkout.',
-                    'default'     => 'Lightning Pay',
+                    'default'     => 'Stacked',
                     'desc_tip'    => true,
                 ],
                 'description' => [
@@ -154,14 +159,14 @@ add_action('plugins_loaded', function () {
                 'api_key' => [
                     'title'       => 'API Key',
                     'type'        => 'password',
-                    'description' => 'Your Lightning Pay API key, found in your merchant profile.',
+                    'description' => 'Your Stacked API key, found in your merchant profile.',
                     'desc_tip'    => true,
                 ],
                 'api_base' => [
                     'title'       => 'API Base URL',
                     'type'        => 'text',
-                    'description' => 'Lightning Pay API base URL.',
-                    'default'     => 'https://app.lightningpay.nz',
+                    'description' => 'Stacked API base URL.',
+                    'default'     => 'https://app.stackedbitcoin.com',
                     'desc_tip'    => true,
                 ],
                 'debug' => [
@@ -175,20 +180,20 @@ add_action('plugins_loaded', function () {
 
         public function admin_options() {
             echo '<div style="margin-bottom: 20px;">';
-            echo '<img src="' . esc_url(plugin_dir_url(__FILE__) . 'assets/images/lightning-pay-logo.png') . '" alt="Lightning Pay" style="max-height: 50px; width: auto;">';
+            echo '<img src="' . esc_url(plugin_dir_url(__FILE__) . 'assets/images/stacked-logo.svg') . '" alt="Stacked" style="max-height: 50px; width: auto;">';
             echo '</div>';
             if (empty($this->api_key)) {
                 echo '<div class="notice notice-info inline"><p>';
-                echo '<strong>Getting started with Lightning Pay:</strong><br>';
-                echo 'If you don\'t have an account, <a href="https://app.lightningpay.nz/auth/register" target="_blank">create one at lightningpay.nz</a>. Ensure you either select company account if you have a business bank account or enter your trading name if you are a sole trader.<br>';
+                echo '<strong>Getting started with Stacked:</strong><br>';
+                echo 'If you don\'t have an account, <a href="https://app.stackedbitcoin.com/auth/register" target="_blank">create one at Stacked</a>. Ensure you either select company account if you have a business bank account or enter your trading name if you are a sole trader.<br>';
                 echo 'If you already have an account, enter your API key below.';
                 echo '</p></div>';
             }
             if (get_woocommerce_currency() !== 'NZD') {
                 echo '<div class="notice notice-warning inline"><p>';
-                echo '<strong>Currency notice:</strong> Lightning Pay only supports <strong>NZD</strong> (New Zealand Dollar). ';
+                echo '<strong>Currency notice:</strong> Stacked only supports <strong>NZD</strong> (New Zealand Dollar). ';
                 echo 'Your store currency is currently set to <strong>' . esc_html(get_woocommerce_currency()) . '</strong>. ';
-                echo 'Please <a href="' . esc_url(admin_url('admin.php?page=wc-settings')) . '">change your currency to NZD</a> for Lightning Pay to be available at checkout.';
+                echo 'Please <a href="' . esc_url(admin_url('admin.php?page=wc-settings')) . '">change your currency to NZD</a> for Stacked to be available at checkout.';
                 echo '</p></div>';
             }
             parent::admin_options();
@@ -243,11 +248,11 @@ add_action('plugins_loaded', function () {
                 return ['result' => 'failure'];
             }
 
-            $order->update_meta_data('_lightning_pay_reference', $body['reference']);
-            $order->update_meta_data('_lightning_pay_link', $body['paymentLink']);
+            $order->update_meta_data('_stacked_reference', $body['reference']);
+            $order->update_meta_data('_stacked_link', $body['paymentLink']);
             $order->save();
 
-            $order->update_status('pending', 'Awaiting Lightning Pay payment.');
+            $order->update_status('pending', 'Awaiting Stacked payment.');
 
             return [
                 'result'   => 'success',
@@ -264,7 +269,7 @@ add_action('plugins_loaded', function () {
                 return;
             }
 
-            $reference = $order->get_meta('_lightning_pay_reference');
+            $reference = $order->get_meta('_stacked_reference');
             if (empty($reference)) {
                 return;
             }
@@ -274,52 +279,34 @@ add_action('plugins_loaded', function () {
                 return;
             }
 
-            $nonce = wp_create_nonce('lightning_pay_check');
-            $ajax_url = WC()->api_request_url('wc_gateway_lightning_pay');
+            $nonce = wp_create_nonce('stacked_check');
+            $ajax_url = WC()->api_request_url('wc_gateway_stacked');
             $ajax_url = add_query_arg([
                 'order_id' => $order_id,
                 'nonce'    => $nonce,
             ], $ajax_url);
 
+            wp_register_script(
+                'stacked-thankyou',
+                plugin_dir_url(__FILE__) . 'assets/js/stacked-thankyou.js',
+                [],
+                STACKED_GATEWAY_VERSION,
+                true
+            );
+            wp_localize_script('stacked-thankyou', 'stackedThankyou', [
+                'ajaxUrl' => esc_url_raw($ajax_url),
+            ]);
+            wp_enqueue_script('stacked-thankyou');
+
             ?>
-            <div id="lightning-pay-status">
+            <div id="stacked-status">
                 <p>Confirming your Lightning payment&hellip;</p>
             </div>
-            <script type="text/javascript">
-            (function() {
-                var attempts = 0;
-                var maxAttempts = 12;
-                var statusEl = document.getElementById('lightning-pay-status');
-                var interval = setInterval(function() {
-                    attempts++;
-                    if (attempts > maxAttempts) {
-                        clearInterval(interval);
-                        statusEl.innerHTML = '<p>Payment confirmation is taking longer than expected. Your order will update automatically once payment is confirmed.</p>';
-                        return;
-                    }
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('GET', <?php echo wp_json_encode(esc_url_raw($ajax_url)); ?>);
-                    xhr.onload = function() {
-                        if (xhr.status === 200) {
-                            try {
-                                var data = JSON.parse(xhr.responseText);
-                                if (data.paid) {
-                                    clearInterval(interval);
-                                    statusEl.innerHTML = '<p><strong>Payment confirmed!</strong></p>';
-                                    setTimeout(function() { location.reload(); }, 1500);
-                                }
-                            } catch(e) {}
-                        }
-                    };
-                    xhr.send();
-                }, 5000);
-            })();
-            </script>
             <?php
         }
 
         public function handle_return() {
-            if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'lightning_pay_check' ) ) {
+            if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'stacked_check' ) ) {
                 wp_send_json(['paid' => false], 403);
                 return;
             }
@@ -343,7 +330,7 @@ add_action('plugins_loaded', function () {
                 return;
             }
 
-            $reference = $order->get_meta('_lightning_pay_reference');
+            $reference = $order->get_meta('_stacked_reference');
             if (empty($reference)) {
                 wp_send_json(['paid' => false]);
                 return;
@@ -362,72 +349,47 @@ add_action('plugins_loaded', function () {
                 return;
             }
 
-            $reference = $order->get_meta('_lightning_pay_reference');
-            $payment_link = $order->get_meta('_lightning_pay_link');
+            $reference = $order->get_meta('_stacked_reference');
+            $payment_link = $order->get_meta('_stacked_link');
 
             echo '<div class="order_data_column" style="border-top:1px solid #e5e5e5; padding-top:12px; margin-top:12px;">';
-            echo '<img src="' . esc_url(plugin_dir_url(__FILE__) . 'assets/images/lightning-pay-logo.png') . '" alt="Lightning Pay" style="max-height: 30px; width: auto; margin-bottom: 8px;">';
+            echo '<img src="' . esc_url(plugin_dir_url(__FILE__) . 'assets/images/stacked-logo.svg') . '" alt="Stacked" style="max-height: 30px; width: auto; margin-bottom: 8px;">';
             echo '<p><strong>Reference:</strong> ' . esc_html($reference ?: 'N/A') . '</p>';
             if ($payment_link) {
                 echo '<p><strong>Payment Link:</strong> <a href="' . esc_url($payment_link) . '" target="_blank">View</a></p>';
             }
-            echo '<p><strong>Status:</strong> <span id="lp-status">' . ($order->is_paid() ? 'Paid' : 'Pending') . '</span></p>';
+            echo '<p><strong>Status:</strong> <span id="stacked-admin-status">' . ($order->is_paid() ? 'Paid' : 'Pending') . '</span></p>';
 
             if (!$order->is_paid() && $reference) {
-                $nonce = wp_create_nonce('lightning_pay_admin_check');
+                $nonce = wp_create_nonce('stacked_admin_check');
                 ?>
-                <button type="button" class="button" id="lp-check-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>" data-nonce="<?php echo esc_attr($nonce); ?>">Check Payment Status</button>
-                <span id="lp-error" style="display:none; color:#d63638; margin-top:8px;"></span>
-                <script type="text/javascript">
-                document.getElementById('lp-check-status').addEventListener('click', function() {
-                    var btn = this;
-                    var errorEl = document.getElementById('lp-error');
-                    btn.disabled = true;
-                    btn.textContent = 'Checking...';
-                    errorEl.style.display = 'none';
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('POST', ajaxurl);
-                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                    xhr.onload = function() {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            if (data.success && data.data.paid) {
-                                document.getElementById('lp-status').textContent = 'Paid';
-                                btn.textContent = 'Payment Confirmed';
-                                setTimeout(function() { location.reload(); }, 1500);
-                            } else if (data.success && !data.data.paid) {
-                                btn.textContent = 'Not Yet Paid';
-                                setTimeout(function() { btn.textContent = 'Check Payment Status'; btn.disabled = false; }, 2000);
-                            } else {
-                                var msg = (data.data && data.data.message) ? data.data.message : 'Unknown error';
-                                errorEl.textContent = msg;
-                                errorEl.style.display = 'block';
-                                btn.textContent = 'Check Payment Status';
-                                btn.disabled = false;
-                            }
-                        } catch(e) {
-                            errorEl.textContent = 'Invalid response from server (HTTP ' + xhr.status + ')';
-                            errorEl.style.display = 'block';
-                            btn.textContent = 'Check Payment Status';
-                            btn.disabled = false;
-                        }
-                    };
-                    xhr.onerror = function() {
-                        errorEl.textContent = 'Network error - could not reach server.';
-                        errorEl.style.display = 'block';
-                        btn.textContent = 'Check Payment Status';
-                        btn.disabled = false;
-                    };
-                    xhr.send('action=lightning_pay_check_status&order_id=' + btn.dataset.orderId + '&nonce=' + btn.dataset.nonce);
-                });
-                </script>
+                <button type="button" class="button" id="stacked-check-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>" data-nonce="<?php echo esc_attr($nonce); ?>">Check Payment Status</button>
+                <span id="stacked-error" style="display:none; color:#d63638; margin-top:8px;"></span>
                 <?php
             }
             echo '</div>';
         }
 
+        public function enqueue_admin_order_script($hook) {
+            $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+            if (!$screen) {
+                return;
+            }
+            $is_order_screen = in_array($screen->id, ['shop_order', 'woocommerce_page_wc-orders'], true);
+            if (!$is_order_screen) {
+                return;
+            }
+            wp_enqueue_script(
+                'stacked-admin-order',
+                plugin_dir_url(__FILE__) . 'assets/js/stacked-admin-order.js',
+                [],
+                STACKED_GATEWAY_VERSION,
+                true
+            );
+        }
+
         public function admin_check_status() {
-            if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'lightning_pay_admin_check' ) ) {
+            if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'stacked_admin_check' ) ) {
                 wp_send_json_error(['message' => 'Invalid or expired security token. Please reload the page and try again.']);
                 return;
             }
@@ -449,9 +411,9 @@ add_action('plugins_loaded', function () {
                 return;
             }
 
-            $reference = $order->get_meta('_lightning_pay_reference');
+            $reference = $order->get_meta('_stacked_reference');
             if (empty($reference)) {
-                wp_send_json_error(['message' => 'No Lightning Pay reference found for this order.']);
+                wp_send_json_error(['message' => 'No Stacked reference found for this order.']);
                 return;
             }
 
@@ -483,7 +445,7 @@ add_action('plugins_loaded', function () {
 
             if (is_wp_error($response)) {
                 $this->log('Payment check failed: ' . $response->get_error_message());
-                return new WP_Error('api_error', 'Could not connect to Lightning Pay API: ' . $response->get_error_message());
+                return new WP_Error('api_error', 'Could not connect to Stacked API: ' . $response->get_error_message());
             }
 
             $code = wp_remote_retrieve_response_code($response);
@@ -491,16 +453,16 @@ add_action('plugins_loaded', function () {
             $body = json_decode($raw_body, true);
 
             if ($code === 401 || $code === 403) {
-                return new WP_Error('auth_error', 'Lightning Pay API authentication failed (HTTP ' . $code . '). Check your API key.');
+                return new WP_Error('auth_error', 'Stacked API authentication failed (HTTP ' . $code . '). Check your API key.');
             }
 
             if ($code !== 200) {
                 $msg = isset($body['message']) ? $body['message'] : $raw_body;
-                return new WP_Error('api_error', 'Lightning Pay API error (HTTP ' . $code . '): ' . $msg);
+                return new WP_Error('api_error', 'Stacked API error (HTTP ' . $code . '): ' . $msg);
             }
 
             if ($body === null) {
-                return new WP_Error('parse_error', 'Invalid JSON response from Lightning Pay API.');
+                return new WP_Error('parse_error', 'Invalid JSON response from Stacked API.');
             }
 
             return !empty($body['isPaid']) || !empty($body['result']['isPaid']);
@@ -508,7 +470,7 @@ add_action('plugins_loaded', function () {
 
         private function log($message) {
             if ($this->debug) {
-                wc_get_logger()->debug($message, ['source' => 'lightning-pay']);
+                wc_get_logger()->debug($message, ['source' => 'stacked']);
             }
         }
     }
