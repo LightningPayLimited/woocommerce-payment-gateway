@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Stacked Bitcoin Payment Gateway
- * Description: WooCommerce payment gateway for Bitcoin Lightning Network payments via Stacked.
+ * Plugin Name: Stacked Bitcoin Payment Gateway for Woocommerce
+ * Description: Allows merchants in New Zealand to accept bitcoin payments with their woocommerce shop.
  * Version: 1.2.0
  * Author: Stacked
  * Requires Plugins: woocommerce
