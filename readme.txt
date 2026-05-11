@@ -1,4 +1,4 @@
-=== Stacked Bitcoin Payment Gateway ===
+=== Stacked Bitcoin Payment Gateway for Woocommerce ===
 Contributors: stacked
 Tags: woocommerce, bitcoin, lightning network, payments, cryptocurrency
 Requires at least: 5.0
